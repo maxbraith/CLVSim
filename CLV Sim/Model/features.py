@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.interpolate import interp1d
 import pandas as pd
+from datetime import timedelta
 
 #convert to decimal odds
 def american_to_decimal(sequence):
@@ -54,3 +55,39 @@ def time_for_75(frame):
     closest_col = time_diffs.idxmin()
 
     return closest_col
+
+
+#pull time since open and time until event
+def timeInput(frame):
+    eventDate = pd.to_datetime(frame.iloc[0, 2]) + timedelta(days=1)
+    frame = frame.iloc[:, 4:]
+    dfC = frame.dropna(axis=1)
+    dfC = pd.concat([dfC, dfC], ignore_index=True)
+    dfC.loc[1] = dfC.loc[1].apply(
+    lambda x: x.split(' - price: ')[1].strip()
+    if isinstance(x, str) and 'price: ' in x else x
+    )
+    dfC.loc[0] = dfC.loc[0].apply(
+    lambda x: x.split(' - price: ')[0].strip() 
+    if isinstance(x, str) and 'price: ' in x else x
+    )
+    dfC.loc[0] = dfC.loc[0].apply(
+    lambda x: pd.to_datetime(x)
+    )
+
+    empty_row = pd.Series([np.nan] * dfC.shape[1], index=dfC.columns)
+    dfC = pd.concat([dfC.iloc[:1], empty_row.to_frame().T, dfC.iloc[1:]]).reset_index(drop=True)
+    dfC = pd.concat([dfC.iloc[:1], empty_row.to_frame().T, dfC.iloc[1:]]).reset_index(drop=True)
+
+    #populate index 1 with time since open, 2 with time until event
+    timeOpen = dfC.iloc[0,0]
+    dfC.loc[1] = dfC.loc[0].apply(
+        lambda x: (x- timeOpen).total_seconds()
+    )
+    dfC.loc[2] = dfC.loc[0].apply(
+        lambda x: (eventDate-x).total_seconds()
+    )
+
+    dfC = dfC.drop(index=0).reset_index(drop=True)
+
+    return dfC
