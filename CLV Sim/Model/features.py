@@ -24,6 +24,12 @@ def fixed_length(seq, output_len, input_kind):
     f = interp1d(x_old, seq, kind=f'{input_kind}')
     return f(x_new)
 
+def fixed_length_timelin(seq, output_len, input_kind, timestamps):
+    x_old = np.array(timestamps)
+    x_new = np.linspace(x_old.min(), x_old.max(), output_len)
+    f = interp1d(x_old, seq, kind=f'{input_kind}')
+    return f(x_new)
+
 
 #split values into two rows to hold date
 def split_for_datetime(frame):
@@ -89,5 +95,38 @@ def timeInput(frame):
     )
 
     dfC = dfC.drop(index=0).reset_index(drop=True)
+
+    return dfC
+
+
+
+
+def linspace_stamps(frame):
+    #frame = frame.iloc[:, 4:]
+    dfC = frame.dropna(axis=1)
+    dfC = pd.concat([dfC, dfC], ignore_index=True)
+    dfC.loc[1] = dfC.loc[1].apply(
+    lambda x: x.split(' - price: ')[1].strip()
+    if isinstance(x, str) and 'price: ' in x else x
+    )
+    dfC.loc[0] = dfC.loc[0].apply(
+    lambda x: x.split(' - price: ')[0].strip() 
+    if isinstance(x, str) and 'price: ' in x else x
+    )
+    dfC.loc[0] = dfC.loc[0].apply(
+    lambda x: pd.to_datetime(x)
+    )
+
+    empty_row = pd.Series([np.nan] * dfC.shape[1], index=dfC.columns)
+    dfC = pd.concat([dfC.iloc[:1], empty_row.to_frame().T, dfC.iloc[1:]]).reset_index(drop=True)
+
+    #populate index 1 with time since open, 2 with time until event
+    timeOpen = dfC.iloc[0,0]
+    dfC.loc[1] = dfC.loc[0].apply(
+        lambda x: (x- timeOpen).total_seconds()
+    )
+
+    dfC = dfC.drop(index=0).reset_index(drop=True)
+    dfC = dfC.drop(index=1).reset_index(drop=True)
 
     return dfC
