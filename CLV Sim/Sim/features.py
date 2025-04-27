@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, Akima1DInterpolator
 import pandas as pd
 
 #convert to decimal odds
@@ -78,8 +78,19 @@ def extract_sequence(frame):
 
 def fixed_length_timelin(seq, output_len, input_kind, timestamps):
     x_old = np.array(timestamps)
+    #clean dups
+    if len(x_old) != len(np.unique(x_old)):
+        for i in range(len(x_old)):
+            if i == 0:
+                continue
+            elif x_old[i] == x_old[i-1]:
+                x_old[i] = x_old[i]+30.0
+                
     x_new = np.linspace(x_old.min(), x_old.max(), output_len)
-    f = interp1d(x_old, seq, kind=f'{input_kind}')
+    if input_kind == 'akima':
+        f = Akima1DInterpolator(x_old, seq)
+    else:
+        f = interp1d(x_old, seq, kind=f'{input_kind}')
     return f(x_new)
 
 
