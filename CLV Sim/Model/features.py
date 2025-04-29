@@ -21,7 +21,11 @@ def implied_probability(sequence):
 def fixed_length(seq, output_len, input_kind):
     x_old = np.arange(len(seq))
     x_new = np.linspace(0, len(seq)-1, output_len)
-    f = interp1d(x_old, seq, kind=f'{input_kind}')
+
+    if input_kind == 'akima':
+        f = Akima1DInterpolator(x_old, seq)
+    else:
+        f = interp1d(x_old, seq, kind=f'{input_kind}')
     return f(x_new)
 
 
