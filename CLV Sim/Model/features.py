@@ -73,7 +73,7 @@ def time_for_75(frame):
     end_time = pd.to_datetime(frame.iloc[0, -1].split(' - price:')[0])
 
     target_time = end_time-pd.Timedelta(hours=48)
-    row_times = frame.iloc[0]
+    row_times = frame.iloc[0, :-1]
 
     time_diffs = row_times.apply(lambda x: abs(pd.to_datetime(str(x).split(' - price:')[0]) - target_time))
     closest_col = time_diffs.idxmin()
